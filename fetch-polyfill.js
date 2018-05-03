@@ -39,6 +39,8 @@ export default function fetchPolyfill (input, init) {
     var request = new Request(input, init)
     var xhr = new XMLHttpRequest()
 
+    const { retries = 0 } = init 
+
     /* @patch: timeout */
     if (init.timeout) {
       xhr.timeout = init.timeout;
@@ -61,7 +63,14 @@ export default function fetchPolyfill (input, init) {
     }
 
     xhr.ontimeout = function() {
-      reject(new TypeError('Network request failed'))
+      if(retries > 0) {
+        fetchPolyfill(input, {...init, retries: retries - 1 })
+          .then(resolve)
+          .catch(reject)
+        
+        return
+      }
+      reject(new TypeError('Network request timed out'))
     }
 
     xhr.open(request.method, request.url, true)
